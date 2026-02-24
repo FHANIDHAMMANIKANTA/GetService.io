@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - GetService.io</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#2563EB',
+                            orange: '#F97316',
+                            dark: '#1E293B',
+                            light: '#F8FAFC'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #2563EB 0%, #F97316 100%); }
+        .sidebar-item:hover { background: rgba(37, 99, 235, 0.1); color: #2563EB; }
+        .sidebar-item.active { background: #2563EB; color: white; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50 font-['Inter']">
+    <!-- Check Admin Auth -->
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (currentUser.role !== 'admin') {
+            window.location.href = 'auth.html?tab=admin';
+        }
+    </script>
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white shadow-xl z-20 flex flex-col">
+            <div class="p-6 border-b">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center">
+                        <i data-lucide="wrench" class="text-white w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-orange bg-clip-text text-transparent">GetService.io</span>
+                        <p class="text-xs text-gray-500">Admin Portal</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 overflow-y-auto py-4">
+                <div class="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase">Main</div>
+                <a href="#" onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-item active flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" onclick="showSection('providers')" id="nav-providers" class="sidebar-item flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Service Providers</span>
+                    <span id="pending-count" class="ml-auto bg-brand-orange text-white text-xs px-2 py-1 rounded-full hidden">0</span>
+                </a>
+                <a href="#" onclick="showSection('users')" id="nav-users" class="sidebar-item flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="user-circle" class="w-5 h-5"></i>
+                    <span>Users</span>
+                </a>
+                <a href="#" onclick="showSection('bookings')" id="nav-bookings" class="sidebar-item flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                    <span>Bookings</span>
+                </a>
+                
+                <div class="px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase">Management</div>
+                <a href="#" onclick="showSection('services')" id="nav-services" class="sidebar-item flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="briefcase" class="w-5 h-5"></i>
+                    <span>Services</span>
+                </a>
+                <a href="#" onclick="showSection('locations')" id="nav-locations" class="sidebar-item flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="map" class="w-5 h-5"></i>
+                    <span>States & Districts</span>
+                </a>
+                <a href="#" onclick="showSection('payments')" id="nav-payments" class="sidebar-item flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i>
+                    <span>Payments</span>
+                </a>
+                <a href="#" onclick="showSection('excel')" id="nav-excel" class="sidebar-item flex items-center space-x-3 px-6 py-3 transition">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                    <span>Client Excel</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <i data-lucide="shield" class="w-5 h-5 text-gray-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-sm" id="admin-name">Admin</p>
+                        <p class="text-xs text-gray-500">Super Admin</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center space-x-2 text-red-600 hover:bg-red-50 py-2 rounded-lg transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- Top Bar -->
+            <header class="bg-white shadow-sm sticky top-0 z-10">
+                <div class="flex justify-between items-center px-8 py-4">
+                    <h1 class="text-2xl font-bold text-gray-800" id="page-title">Dashboard Overview</h1>
+                    <div class="flex items-center space-x-4">
+                        <button class="p-2 text-gray-400 hover:text-gray-600 relative">
+                            <i data-lucide="bell" class="w-6 h-6"></i>
+                            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                        <button class="p-2 text-gray-400 hover:text-gray-600">
+                            <i data-lucide="settings" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-8">
+                <!-- Dashboard Section -->
+                <div id="section-dashboard" class="fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm card-hover transition">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Total Revenue</p>
+                                    <h3 class="text-3xl font-bold text-gray-900 mt-1" id="total-revenue">₹0</h3>
+                                </div>
+                                <div class="p-3 bg-green-100 rounded-xl">
+                                    <i data-lucide="trending-up" class="w-6 h-6 text-green-600"></i>
+                                </div>
+                            </div>
+                            <p class="text-green-600 text-sm mt-4">+12% from last month</p>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-2xl shadow-sm card-hover transition">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Active Providers</p>
+                                    <h3 class="text-3xl font-bold text-gray-900 mt-1" id="active-providers">0</h3>
+                                </div>
+                                <div class="p-3 bg-brand-blue/10 rounded-xl">
+                                    <i data-lucide="users" class="w-6 h-6 text-brand-blue"></i>
+                                </div>
+                            </div>
+                            <p class="text-brand-blue text-sm mt-4">+5 new this week</p>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-2xl shadow-sm card-hover transition">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Total Bookings</p>
+                                    <h3 class="text-3xl font-bold text-gray-900 mt-1" id="total-bookings">0</h3>
+                                </div>
+                                <div class="p-3 bg-brand-orange/10 rounded-xl">
+                                    <i data-lucide="calendar" class="w-6 h-6 text-brand-orange"></i>
+                                </div>
+                            </div>
+                            <p class="text-brand-orange text-sm mt-4">+23% this week</p>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-2xl shadow-sm card-hover transition">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Pending Approvals</p>
+                                    <h3 class="text-3xl font-bold text-gray-900 mt-1" id="pending-approvals">0</h3>
+                                </div>
+                                <div class="p-3 bg-yellow-100 rounded-xl">
+                                    <i data-lucide="clock" class="w-6 h-6 text-yellow-600"></i>
+                                </div>
+                            </div>
+                            <p class="text-yellow-600 text-sm mt-4">Requires action</p>
+                        </div>
+                    </div>
+
+                    <div class="grid lg:grid-cols-2 gap-8">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm">
+                            <h3 class="font-bold text-lg mb-4">Recent Bookings</h3>
+                            <div id="recent-bookings-list" class="space-y-4">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-2xl shadow-sm">
+                            <h3 class="font-bold text-lg mb-4">Service Categories Distribution</h3>
+                            <div id="service-distribution" class="space-y-3">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Providers Section -->
+                <div id="section-providers" class="hidden fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex space-x-4">
+                            <button onclick="filterProviders('all')" id="filter-all" class="px-4 py-2 rounded-lg bg-brand-blue text-white font-medium">All</button>
+                            <button onclick="filterProviders('pending')" id="filter-pending" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium">Pending</button>
+                            <button onclick="filterProviders('approved')" id="filter-approved" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium">Approved</button>
+                            <button onclick="filterProviders('rejected')" id="filter-rejected" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium">Rejected</button>
+                        </div>
+                        <button onclick="exportProviders()" class="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Export Excel</span>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Provider</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Service</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Location</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Experience</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="providers-table-body" class="divide-y divide-gray-100">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Users Section -->
+                <div id="section-users" class="hidden fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="p-6 border-b flex justify-between items-center">
+                            <h3 class="font-bold text-lg">Registered Users</h3>
+                            <button onclick="exportUsers()" class="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span>Export to Excel</span>
+                            </button>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">User</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Email</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Phone</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Joined Date</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-gray-100">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Services Management Section -->
+                <div id="section-services" class="hidden fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Service Categories Management</h2>
+                        <button onclick="openServiceModal()" class="flex items-center space-x-2 px-6 py-3 bg-brand-blue text-white rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            <span>Add New Service</span>
+                        </button>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="services-management-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Bookings Section -->
+                <div id="section-bookings" class="hidden fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="p-6 border-b">
+                            <h3 class="font-bold text-lg">All Bookings</h3>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Booking ID</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Customer</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Service</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Provider</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Date</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Amount</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookings-table-body" class="divide-y divide-gray-100">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Excel Export Section -->
+                <div id="section-excel" class="hidden fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm p-8">
+                        <h2 class="text-2xl font-bold mb-6">Client Registration Excel Export</h2>
+                        
+                        <div class="grid md:grid-cols-2 gap-8 mb-8">
+                            <div class="p-6 border-2 border-dashed border-gray-300 rounded-2xl text-center hover:border-brand-blue transition cursor-pointer" onclick="downloadClientTemplate()">
+                                <i data-lucide="file-text" class="w-12 h-12 text-brand-blue mx-auto mb-4"></i>
+                                <h3 class="font-bold text-lg mb-2">Download Template</h3>
+                                <p class="text-gray-600 text-sm">Get Excel template for bulk client registration</p>
+                            </div>
+                            
+                            <div class="p-6 border-2 border-dashed border-gray-300 rounded-2xl text-center hover:border-brand-blue transition">
+                                <i data-lucide="upload" class="w-12 h-12 text-brand-orange mx-auto mb-4"></i>
+                                <h3 class="font-bold text-lg mb-2">Import Clients</h3>
+                                <input type="file" id="excel-upload" accept=".xlsx,.xls" onchange="handleExcelUpload(event)" class="hidden">
+                                <button onclick="document.getElementById('excel-upload').click()" class="text-brand-blue font-medium hover:underline">Click to upload Excel file</button>
+                            </div>
+                        </div>
+                        
+                        <div id="excel-preview" class="hidden">
+                            <h3 class="font-bold text-lg mb-4">Preview Import Data</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full border" id="preview-table">
+                                    <!-- Preview populated here -->
+                                </table>
+                            </div>
+                            <div class="mt-4 flex justify-end space-x-4">
+                                <button onclick="cancelImport()" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                                <button onclick="confirmImport()" class="px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-700">Confirm Import</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Locations Section -->
+                <div id="section-locations" class="hidden fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="openLocationModal()" class="flex items-center space-x-2 px-6 py-3 bg-brand-blue text-white rounded-xl font-semibold hover:bg-blue-700 transition">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            <span>Add State/District</span>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <div id="locations-list" class="space-y-4">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payments Section -->
+                <div id="section-payments" class="hidden fade-in">
+                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <h3 class="font-bold text-lg mb-6">Payment Transactions</h3>
+                        <div id="payments-list" class="space-y-4">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Service Modal -->
+    <div id="service-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeServiceModal()"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold" id="service-modal-title">Add New Service</h3>
+                    <button onclick="closeServiceModal()" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <form id="service-form" onsubmit="handleServiceSubmit(event)" class="space-y-4">
+                    <input type="hidden" id="service-id">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Service Name</label>
+                        <input type="text" id="service-name" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue" placeholder="e.g., AC Repair">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Icon Name (Lucide)</label>
+                        <input type="text" id="service-icon" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue" placeholder="e.g., wind, zap, droplets">
+                        <p class="text-xs text-gray-500 mt-1">Use Lucide icon names: wind, zap, droplets, etc.</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Color Theme</label>
+                        <select id="service-color" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                            <option value="bg-blue-100 text-blue-600">Blue</option>
+                            <option value="bg-orange-100 text-orange-600">Orange</option>
+                            <option value="bg-green-100 text-green-600">Green</option>
+                            <option value="bg-red-100 text-red-600">Red</option>
+                            <option value="bg-purple-100 text-purple-600">Purple</option>
+                            <option value="bg-pink-100 text-pink-600">Pink</option>
+                            <option value="bg-yellow-100 text-yellow-600">Yellow</option>
+                            <option value="bg-indigo-100 text-indigo-600">Indigo</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Base Price (₹)</label>
+                        <input type="number" id="service-price" required min="0" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue" placeholder="e.g., 299">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                        <textarea id="service-description" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue" placeholder="Service description..."></textarea>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="service-active" checked class="rounded border-gray-300 text-brand-blue focus:ring-brand-blue">
+                        <label class="ml-2 text-sm text-gray-700">Active Service</label>
+                    </div>
+                    
+                    <div class="flex space-x-4 pt-4">
+                        <button type="button" onclick="closeServiceModal()" class="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                        <button type="submit" class="flex-1 px-6 py-3 bg-brand-blue text-white rounded-xl font-semibold hover:bg-blue-700 transition">Save Service</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Modal -->
+    <div id="location-modal-admin" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeLocationModal()"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <h3 class="text-xl font-bold mb-4">Add Location</h3>
+                <form onsubmit="handleLocationSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">State Name</label>
+                        <input type="text" id="new-state" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Districts (comma separated)</label>
+                        <textarea id="new-districts" required rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue" placeholder="District1, District2, District3..."></textarea>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button type="button" onclick="closeLocationModal()" class="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-semibold">Cancel</button>
+                        <button type="submit" class="flex-1 px-6 py-3 bg-brand-blue text-white rounded-xl font-semibold">Add</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // Initialize data
+        let services = JSON.parse(localStorage.getItem('adminServices')) || [
+            { id: 1, name: 'Carpenter', icon: 'hammer', color: 'bg-amber-100 text-amber-600', price: 299, description: 'Furniture repair and woodwork', active: true },
+            { id: 2, name: 'Electrician', icon: 'zap', color: 'bg-yellow-100 text-yellow-600', price: 249, description: 'Electrical repairs and wiring', active: true },
+            { id: 3, name: 'Plumber', icon: 'droplets', color: 'bg-blue-100 text-blue-600', price: 299, description: 'Plumbing and pipe repairs', active: true },
+            { id: 4, name: 'Painter', icon: 'paint-bucket', color: 'bg-pink-100 text-pink-600', price: 399, description: 'Home and office painting', active: true },
+            { id: 5, name: 'Home Cleaning', icon: 'sparkles', color: 'bg-cyan-100 text-cyan-600', price: 499, description: 'Deep cleaning services', active: true },
+            { id: 6, name: 'AC Repair', icon: 'wind', color: 'bg-indigo-100 text-indigo-600', price: 599, description: 'AC installation and repair', active: true }
+        ];
+        
+        let locations = JSON.parse(localStorage.getItem('adminLocations')) || {
+            'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik'],
+            'Delhi': ['New Delhi', 'North Delhi', 'South Delhi'],
+            'Karnataka': ['Bangalore', 'Mysore', 'Mangalore']
+        };
+
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            
+            // Show selected
+            document.getElementById('section-' + section).classList.remove('hidden');
+            document.getElementById('nav-' + section).classList.add('active');
+            
+            // Update title
+            const titles = {
+                'dashboard': 'Dashboard Overview',
+                'providers': 'Service Providers',
+                'users': 'User Management',
+                'services': 'Service Categories',
+                'bookings': 'All Bookings',
+                'locations': 'Location Management',
+                'payments': 'Payment Records',
+                'excel': 'Client Excel Import/Export'
+            };
+            document.getElementById('page-title').textContent = titles[section];
+            
+            // Load data
+            if (section === 'providers') loadProviders();
+            if (section === 'users') loadUsers();
+            if (section === 'services') loadServices();
+            if (section === 'bookings') loadBookings();
+            if (section === 'locations') loadLocations();
+            if (section === 'dashboard') loadDashboard();
+        }
+
+        // Dashboard Stats
+        function loadDashboard() {
+            const providers = JSON.parse(localStorage.getItem('providerApplications') || '[]');
+            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            
+            const approvedProviders = providers.filter(p => p.status === 'approved').length;
+            const pendingProviders = providers.filter(p => p.status === 'pending').length;
+            const totalRevenue = bookings.reduce((sum, b) => sum + (b.amount || 0), 0);
+            
+            document.getElementById('active-providers').textContent = approvedProviders;
+            document.getElementById('pending-approvals').textContent = pendingProviders;
+            document.getElementById('total-bookings').textContent = bookings.length;
+            document.getElementById('total-revenue').textContent = '₹' + totalRevenue.toLocaleString();
+            
+            // Update sidebar badge
+            if (pendingProviders > 0) {
+                document.getElementById('pending-count').textContent = pendingProviders;
+                document.getElementById('pending-count').classList.remove('hidden');
+            }
+            
+            // Recent bookings
+            const recentBookings = bookings.slice(-5).reverse();
+            const bookingsHTML = recentBookings.map(b => `
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-brand-blue/10 rounded-full flex items-center justify-center">
+                            <i data-lucide="calendar" class="w-5 h-5 text-brand-blue"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">${b.service || 'Service'}</p>
+                            <p class="text-xs text-gray-500">${b.customer || 'Customer'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-brand-orange">₹${b.amount || 0}</p>
+                        <p class="text-xs text-gray-500">${b.date || 'Today'}</p>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('recent-bookings-list').innerHTML = bookingsHTML || '<p class="text-gray-500 text-center py-8">No bookings yet</p>';
+        }
+
+        // Providers Management
+        function loadProviders(filter = 'all') {
+            const providers = JSON.parse(localStorage.getItem('providerApplications') || '[]');
+            const tbody = document.getElementById('providers-table-body');
+            
+            let filtered = providers;
+            if (filter !== 'all') {
+                filtered = providers.filter(p => p.status === filter);
+            }
+            
+            tbody.innerHTML = filtered.map(p => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <i data-lucide="user" class="w-5 h-5 text-gray-500"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-sm">${p.firstName} ${p.lastName}</p>
+                                <p class="text-xs text-gray-500">${p.email}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm capitalize">${p.service}</td>
+                    <td class="px-6 py-4 text-sm">${p.district}, ${p.state}</td>
+                    <td class="px-6 py-4 text-sm">${p.experience} years</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(p.status)}">
+                            ${p.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex space-x-2">
+                            ${p.status === 'pending' ? `
+                                <button onclick="approveProvider(${p.id})" class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200">
+                                    <i data-lucide="check" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="rejectProvider(${p.id})" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteProvider(${p.id})" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No providers found</td></tr>';
+            }
+            
+            lucide.createIcons();
+        }
+
+        function filterProviders(status) {
+            // Update buttons
+            ['all', 'pending', 'approved', 'rejected'].forEach(s => {
+                const btn = document.getElementById('filter-' + s);
+                if (s === status) {
+                    btn.classList.remove('bg-gray-200', 'text-gray-700');
+                    btn.classList.add('bg-brand-blue', 'text-white');
+                } else {
+                    btn.classList.add('bg-gray-200', 'text-gray-700');
+                    btn.classList.remove('bg-brand-blue', 'text-white');
+                }
+            });
+            loadProviders(status);
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'pending': 'bg-yellow-100 text-yellow-700',
+                'approved': 'bg-green-100 text-green-700',
+                'rejected': 'bg-red-100 text-red-700'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-700';
+        }
+
+        function approveProvider(id) {
+            const providers = JSON.parse(localStorage.getItem('providerApplications') || '[]');
+            const provider = providers.find(p => p.id === id);
+            if (provider) {
+                provider.status = 'approved';
+                provider.approvedAt = new Date().toISOString();
+                localStorage.setItem('providerApplications', JSON.stringify(providers));
+                loadProviders();
+                loadDashboard();
+                alert('Provider approved successfully!');
+            }
+        }
+
+        function rejectProvider(id) {
+            if (!confirm('Are you sure you want to reject this provider?')) return;
+            const providers = JSON.parse(localStorage.getItem('providerApplications') || '[]');
+            const provider = providers.find(p => p.id === id);
+            if (provider) {
+                provider.status = 'rejected';
+                localStorage.setItem('providerApplications', JSON.stringify(providers));
+                loadProviders();
+            }
+        }
+
+        function deleteProvider(id) {
+            if (!confirm('Are you sure you want to delete this provider?')) return;
+            let providers = JSON.parse(localStorage.getItem('providerApplications') || '[]');
+            providers = providers.filter(p => p.id !== id);
+            localStorage.setItem('providerApplications', JSON.stringify(providers));
+            loadProviders();
+            loadDashboard();
+        }
+
+        // Users Management
+        function loadUsers() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const tbody = document.getElementById('users-table-body');
+            
+            tbody.innerHTML = users.map(u => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-brand-blue/10 rounded-full flex items-center justify-center">
+                                <i data-lucide="user" class="w-5 h-5 text-brand-blue"></i>
+                            </div>
+                            <span class="font-semibold text-sm">${u.name || 'User'}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm">${u.email}</td>
+                    <td class="px-6 py-4 text-sm">${u.phone || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm">${new Date(u.id).toLocaleDateString()}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Active</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="banUser('${u.email}')" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Ban User">
+                            <i data-lucide="ban" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No users found</td></tr>';
+            }
+            
+            lucide.createIcons();
+        }
+
+        function banUser(email) {
+            if (!confirm('Are you sure you want to ban this user?')) return;
+            alert('User ' + email + ' has been banned');
+        }
+
+        // Services Management
+        function loadServices() {
+            const grid = document.getElementById('services-management-grid');
+            grid.innerHTML = services.map(s => `
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg transition">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-14 h-14 ${s.color} rounded-2xl flex items-center justify-center">
+                            <i data-lucide="${s.icon}" class="w-7 h-7"></i>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editService(${s.id})" class="p-2 text-gray-400 hover:text-brand-blue">
+                                <i data-lucide="edit-2" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="deleteService(${s.id})" class="p-2 text-gray-400 hover:text-red-600">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">${s.name}</h3>
+                    <p class="text-gray-500 text-sm mb-3">${s.description || 'No description'}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-brand-orange font-bold text-lg">₹${s.price}</span>
+                        <span class="px-3 py-1 rounded-full text-xs ${s.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                            ${s.active ? 'Active' : 'Inactive'}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            
+            lucide.createIcons();
+        }
+
+        function openServiceModal(serviceId = null) {
+            document.getElementById('service-modal').classList.remove('hidden');
+            
+            if (serviceId) {
+                const service = services.find(s => s.id === serviceId);
+                document.getElementById('service-modal-title').textContent = 'Edit Service';
+                document.getElementById('service-id').value = service.id;
+                document.getElementById('service-name').value = service.name;
+                document.getElementById('service-icon').value = service.icon;
+                document.getElementById('service-color').value = service.color;
+                document.getElementById('service-price').value = service.price;
+                document.getElementById('service-description').value = service.description || '';
+                document.getElementById('service-active').checked = service.active;
+            } else {
+                document.getElementById('service-modal-title').textContent = 'Add New Service';
+                document.getElementById('service-form').reset();
+                document.getElementById('service-id').value = '';
+            }
+        }
+
+        function closeServiceModal() {
+            document.getElementById('service-modal').classList.add('hidden');
+        }
+
+        function handleServiceSubmit(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('service-id').value;
+            const serviceData = {
+                id: id ? parseInt(id) : Date.now(),
+                name: document.getElementById('service-name').value,
+                icon: document.getElementById('service-icon').value,
+                color: document.getElementById('service-color').value,
+                price: parseInt(document.getElementById('service-price').value),
+                description: document.getElementById('service-description').value,
+                active: document.getElementById('service-active').checked
+            };
+            
+            if (id) {
+                const index = services.findIndex(s => s.id === parseInt(id));
+                services[index] = serviceData;
+            } else {
+                services.push(serviceData);
+            }
+            
+            localStorage.setItem('adminServices', JSON.stringify(services));
+            closeServiceModal();
+            loadServices();
+            alert('Service saved successfully!');
+        }
+
+        function editService(id) {
+            openServiceModal(id);
+        }
+
+        function deleteService(id) {
+            if (!confirm('Are you sure you want to delete this service?')) return;
+            services = services.filter(s => s.id !== id);
+            localStorage.setItem('adminServices', JSON.stringify(services));
+            loadServices();
+        }
+
+        // Excel Import/Export
+        function exportProviders() {
+            const providers = JSON.parse(localStorage.getItem('providerApplications') || '[]');
+            const data = providers.map(p => ({
+                'First Name': p.firstName,
+                'Last Name': p.lastName,
+                'Email': p.email,
+                'Phone': p.phone,
+                'Service': p.service,
+                'State': p.state,
+                'District': p.district,
+                'Experience': p.experience,
+                'Hourly Rate': p.hourlyRate,
+                'Status': p.status,
+                'Submitted Date': new Date(p.submittedAt).toLocaleDateString()
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Providers");
+            XLSX.writeFile(wb, "service_providers.xlsx");
+        }
+
+        function exportUsers() {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const data = users.map(u => ({
+                'Name': u.name || 'N/A',
+                'Email': u.email,
+                'Phone': u.phone || 'N/A',
+                'Role': u.role || 'user',
+                'Registered Date': new Date(u.id).toLocaleDateString()
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Users");
+            XLSX.writeFile(wb, "registered_users.xlsx");
+        }
+
+        function downloadClientTemplate() {
+            const template = [
+                {
+                    'First Name': 'John',
+                    'Last Name': 'Doe',
+                    'Email': 'john@example.com',
+                    'Phone': '9876543210',
+                    'State': 'Maharashtra',
+                    'District': 'Mumbai',
+                    'Service Needed': 'Plumbing',
+                    'Preferred Date': '2024-01-15'
+                }
+            ];
+            
+            const ws = XLSX.utils.json_to_sheet(template);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "client_registration_template.xlsx");
+        }
+
+        let pendingImportData = [];
+
+        function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                pendingImportData = jsonData;
+                showExcelPreview(jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showExcelPreview(data) {
+            const preview = document.getElementById('excel-preview');
+            const table = document.getElementById('preview-table');
+            
+            if (data.length === 0) {
+                alert('No data found in Excel file');
+                return;
+            }
+            
+            const headers = Object.keys(data[0]);
+            let html = '<thead class="bg-gray-50"><tr>' + 
+                headers.map(h => `<th class="px-4 py-2 border text-left font-semibold">${h}</th>`).join('') + 
+                '</tr></thead><tbody>';
+            
+            html += data.slice(0, 5).map(row => 
+                '<tr>' + headers.map(h => `<td class="px-4 py-2 border text-sm">${row[h] || ''}</td>`).join('') + '</tr>'
+            ).join('');
+            
+            if (data.length > 5) {
+                html += `<tr><td colspan="${headers.length}" class="px-4 py-2 border text-center text-gray-500">... and ${data.length - 5} more rows</td></tr>`;
+            }
+            
+            html += '</tbody>';
+            table.innerHTML = html;
+            preview.classList.remove('hidden');
+        }
+
+        function cancelImport() {
+            document.getElementById('excel-preview').classList.add('hidden');
+            document.getElementById('excel-upload').value = '';
+            pendingImportData = [];
+        }
+
+        function confirmImport() {
+            // Save as bookings or users depending on data structure
+            const existing = JSON.parse(localStorage.getItem('importedClients') || '[]');
+            const newData = pendingImportData.map(d => ({...d, importedAt: new Date().toISOString(), id: Date.now() + Math.random()}));
+            localStorage.setItem('importedClients', JSON.stringify([...existing, ...newData]));
+            
+            alert(`Successfully imported ${pendingImportData.length} clients!`);
+            cancelImport();
+        }
+
+        // Locations
+        function loadLocations() {
+            const container = document.getElementById('locations-list');
+            container.innerHTML = Object.entries(locations).map(([state, districts]) => `
+                <div class="border rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-bold text-lg">${state}</h4>
+                        <button onclick="deleteState('${state}')" class="text-red-600 hover:text-red-800">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${districts.map(d => `
+                            <span class="px-3 py-1 bg-gray-100 rounded-full text-sm flex items-center space-x-2">
+                                <span>${d}</span>
+                                <button onclick="deleteDistrict('${state}', '${d}')" class="text-gray-400 hover:text-red-600">
+                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                </button>
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function openLocationModal() {
+            document.getElementById('location-modal-admin').classList.remove('hidden');
+        }
+
+        function closeLocationModal() {
+            document.getElementById('location-modal-admin').classList.add('hidden');
+        }
+
+        function handleLocationSubmit(e) {
+            e.preventDefault();
+            const state = document.getElementById('new-state').value;
+            const districts = document.getElementById('new-districts').value.split(',').map(d => d.trim()).filter(d => d);
+            
+            locations[state] = districts;
+            localStorage.setItem('adminLocations', JSON.stringify(locations));
+            closeLocationModal();
+            loadLocations();
+            alert('Location added successfully!');
+        }
+
+        function deleteState(state) {
+            if (!confirm(`Delete ${state} and all its districts?`)) return;
+            delete locations[state];
+            localStorage.setItem('adminLocations', JSON.stringify(locations));
+            loadLocations();
+        }
+
+        function deleteDistrict(state, district) {
+            locations[state] = locations[state].filter(d => d !== district);
+            localStorage.setItem('adminLocations', JSON.stringify(locations));
+            loadLocations();
+        }
+
+        // Bookings
+        function loadBookings() {
+            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+            const tbody = document.getElementById('bookings-table-body');
+            
+            tbody.innerHTML = bookings.map(b => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-mono">#${b.id?.toString().slice(-6) || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm">${b.customer || 'Unknown'}</td>
+                    <td class="px-6 py-4 text-sm capitalize">${b.service}</td>
+                    <td class="px-6 py-4 text-sm">${b.provider || 'Unassigned'}</td>
+                    <td class="px-6 py-4 text-sm">${b.date || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm font-semibold">₹${b.amount || 0}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${getBookingStatusColor(b.status)}">
+                            ${b.status || 'Pending'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+            
+            if (bookings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">No bookings found</td></tr>';
+            }
+        }
+
+        function getBookingStatusColor(status) {
+            const colors = {
+                'completed': 'bg-green-100 text-green-700',
+                'confirmed': 'bg-blue-100 text-blue-700',
+                'pending': 'bg-yellow-100 text-yellow-700',
+                'cancelled': 'bg-red-100 text-red-700'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-700';
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'auth.html';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('admin-name').textContent = currentUser.name || 'Admin';
+            loadDashboard();
+        });
+
+        // Close modals on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeServiceModal();
+                closeLocationModal();
+            }
+        });
+    </script>
+</body>
+</html>
