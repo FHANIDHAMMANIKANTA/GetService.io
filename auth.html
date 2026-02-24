@@ -1,21 +1,64 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// 🔥 Your Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAPjy2mUOpmJidV3EmtRR37enN6bRcCohQ",
   authDomain: "getservice-8003b.firebaseapp.com",
+  databaseURL: "https://getservice-8003b-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "getservice-8003b",
   storageBucket: "getservice-8003b.firebasestorage.app",
   messagingSenderId: "218679079698",
-  appId: "1:218679079698:web:9978c9b4131468ca78b9cb",
-  measurementId: "G-9D9SE636T7"
+  appId: "1:218679079698:web:e89d640e7769c63178b9cb"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+// 🔐 Setup reCAPTCHA
+window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+  size: 'normal'
+}, auth);
+
+// 📩 Send OTP
+window.sendOTP = function () {
+  const phoneNumber = document.getElementById("phone").value;
+  const appVerifier = window.recaptchaVerifier;
+
+  signInWithPhoneNumber(auth, phoneNumber, appVerifier)
+    .then((confirmationResult) => {
+      window.confirmationResult = confirmationResult;
+      alert("OTP Sent Successfully!");
+    })
+    .catch((error) => {
+      alert(error.message);
+    });
+};
+
+// ✅ Verify OTP
+window.verifyOTP = function () {
+  const code = document.getElementById("otp").value;
+
+  confirmationResult.confirm(code)
+    .then((result) => {
+      const user = result.user;
+
+      // Save user in database
+      set(ref(db, 'users/' + user.uid), {
+        phone: user.phoneNumber,
+        role: "user"
+      });
+
+      alert("Login Successful!");
+      window.location.href = "user-dashboard.html";
+    })
+    .catch((error) => {
+      alert("Invalid OTP");
+    });
+};
+</script>
+
+<div id="recaptcha-container"></div>
