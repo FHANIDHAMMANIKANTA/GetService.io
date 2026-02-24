@@ -1,9 +1,10 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, get, child } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// 🔥 Your Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAPjy2mUOpmJidV3EmtRR37enN6bRcCohQ",
   authDomain: "getservice-8003b.firebaseapp.com",
@@ -18,47 +19,51 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// 🔐 Setup reCAPTCHA
-window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-  size: 'normal'
-}, auth);
+// 🔹 REGISTER
+window.registerUser = function(role) {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-// 📩 Send OTP
-window.sendOTP = function () {
-  const phoneNumber = document.getElementById("phone").value;
-  const appVerifier = window.recaptchaVerifier;
+  createUserWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      const user = userCredential.user;
 
-  signInWithPhoneNumber(auth, phoneNumber, appVerifier)
-    .then((confirmationResult) => {
-      window.confirmationResult = confirmationResult;
-      alert("OTP Sent Successfully!");
-    })
-    .catch((error) => {
-      alert(error.message);
-    });
-};
-
-// ✅ Verify OTP
-window.verifyOTP = function () {
-  const code = document.getElementById("otp").value;
-
-  confirmationResult.confirm(code)
-    .then((result) => {
-      const user = result.user;
-
-      // Save user in database
       set(ref(db, 'users/' + user.uid), {
-        phone: user.phoneNumber,
-        role: "user"
+        email: email,
+        role: role
       });
 
-      alert("Login Successful!");
-      window.location.href = "user-dashboard.html";
+      alert("Registered Successfully!");
     })
-    .catch((error) => {
-      alert("Invalid OTP");
-    });
-};
-</script>
+    .catch((error) => alert(error.message));
+}
 
-<div id="recaptcha-container"></div>
+// 🔹 LOGIN
+window.loginUser = function() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  signInWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      const user = userCredential.user;
+
+      get(child(ref(db), 'users/' + user.uid))
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            const role = snapshot.val().role;
+
+            if (role === "admin") {
+              window.location = "admin-dashboard.html";
+            } 
+            else if (role === "provider") {
+              window.location = "provider-dashboard.html";
+            } 
+            else {
+              window.location = "user-dashboard.html";
+            }
+          }
+        });
+    })
+    .catch((error) => alert("Invalid Login"));
+}
+</script>
